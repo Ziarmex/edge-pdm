@@ -21,7 +21,6 @@
 #define SIGNAL_LENGTH 128       // Échantillons
 #define FFT_SIZE 64             // Moitié du signal
 #define LED_PIN 2               // LED built-in ESP32
-#define ANOMALY_THRESHOLD 0.05  // À ajuster selon model_params.json
 
 // Simulation ou ADC réel
 #define USE_SIMULATION true     // true pour simulation, false pour ADC
@@ -51,15 +50,9 @@ unsigned long inferenceCount = 0;
 unsigned long anomalyCount = 0;
 unsigned long totalInferenceTime = 0;
 
-// Normalisation (valeurs du scaler Python)
-// À REMPLACER par les valeurs de model_params.json
-float scaler_mean[FFT_SIZE];
-float scaler_scale[FFT_SIZE];
-
-// ============ Modèle TFLite (à inclure) ============
-// Convertir anomaly_model.tflite en array C avec xxd ou autre outil
-// Exemple: xxd -i anomaly_model.tflite > model_data.h
-#include "model_data.h"  // Contient: const unsigned char model_data[] et unsigned int model_data_len
+// ============ Modèle et paramètres TFLite ============
+#include "model_data.h"     // model_data[] + model_data_len
+#include "scaler_params.h"  // scaler_mean[], scaler_scale[], ANOMALY_THRESHOLD, FFT_SIZE
 
 // ============ Fonctions ============
 
@@ -79,9 +72,6 @@ void setup() {
     analogReadResolution(12);  // 12-bit ADC
     pinMode(ADC_PIN, INPUT);
   }
-  
-  // Initialisation des scalers (exemple, à remplacer)
-  initializeScalers();
   
   // Chargement du modèle TFLite
   Serial.println("Chargement du modèle TFLite...");
@@ -253,16 +243,4 @@ void normalizeFeatures() {
   }
 }
 
-// ============ Initialisation des scalers ============
-void initializeScalers() {
-  // Valeurs par défaut (à REMPLACER par model_params.json)
-  // Ces valeurs doivent correspondre au scaler entraîné
-  Serial.println("Initialisation des scalers...");
-  
-  for (int i = 0; i < FFT_SIZE; i++) {
-    scaler_mean[i] = 0.0;   // À remplacer
-    scaler_scale[i] = 1.0;  // À remplacer
-  }
-  
-  Serial.println("Scalers initialisés (valeurs par défaut)");
-}
+
