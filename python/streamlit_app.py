@@ -5,18 +5,9 @@ import plotly.graph_objects as go
 
 sys.path.insert(0, os.path.dirname(__file__))
 from train_anomaly_model import SIGNAL_LENGTH, SAMPLE_RATE, FFT_SIZE
+from numpy_model import predict as np_predict, mse as np_mse
 
 st.set_page_config(page_title="Edge PDM", page_icon="⚙️", layout="wide")
-
-@st.cache_resource
-def load_model():
-    try:
-        from tflite_runtime.interpreter import Interpreter
-    except ImportError:
-        from tensorflow.lite.python.interpreter import Interpreter
-    interpreter = Interpreter(model_path="anomaly_model.tflite")
-    interpreter.allocate_tensors()
-    return interpreter, interpreter.get_input_details(), interpreter.get_output_details()
 
 @st.cache_resource
 def load_scaler():
@@ -28,7 +19,6 @@ def load_params():
     with open("model_params.json") as f:
         return json.load(f)
 
-interpreter, input_details, output_details = load_model()
 scaler = load_scaler()
 params = load_params()
 threshold = params["threshold"]
@@ -37,12 +27,9 @@ def run_pipeline(signal):
     fft = np.fft.rfft(signal, n=SIGNAL_LENGTH)
     magnitude = np.abs(fft)[:FFT_SIZE]
     magnitude = magnitude / (np.max(magnitude) + 1e-10)
-    normalized = (magnitude - scaler.mean_) / scaler.scale_
-    input_data = normalized.astype(np.float32).reshape(1, -1)
-    interpreter.set_tensor(input_details[0]["index"], input_data)
-    interpreter.invoke()
-    output_data = interpreter.get_tensor(output_details[0]["index"])
-    mse = float(np.mean(np.square(input_data - output_data)))
+    x = (magnitude - scaler.mean_) / scaler.scale_
+    reconstructed = np_predict(x)
+    mse = np_mse(x, reconstructed)
     return magnitude, mse, mse > threshold
 
 CUSTOM_CSS = """

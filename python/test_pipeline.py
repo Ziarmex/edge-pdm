@@ -4,10 +4,7 @@ Simule le comportement ESP32 pour vérifier que tout fonctionne.
 """
 
 import numpy as np
-try:
-    from tflite_runtime.interpreter import Interpreter
-except ImportError:
-    from tensorflow.lite.python.interpreter import Interpreter
+from numpy_model import predict as np_predict, mse as np_mse
 from sklearn.preprocessing import StandardScaler
 import pickle
 import json
@@ -25,15 +22,10 @@ def test_pipeline():
     print("TEST DU PIPELINE COMPLET (simulation ESP32)")
     print("=" * 60)
 
-    # 1. Charger le modèle TFLite
-    print("\n[1] Chargement du modèle TFLite...")
-    interpreter = Interpreter(model_path="anomaly_model.tflite")
-    interpreter.allocate_tensors()
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
-    print(f"    Input shape: {input_details[0]['shape']}")
-    print(f"    Output shape: {output_details[0]['shape']}")
-    print(f"    Input dtype: {input_details[0]['dtype']}")
+    # 1. Charger le modèle
+    print("\n[1] Chargement du modèle NumPy...")
+    _ = np_predict(np.zeros(FFT_SIZE))
+    print(f"    Modèle chargé: {FFT_SIZE} features -> autoencoder -> {FFT_SIZE} features")
 
     # 2. Charger le scaler
     print("\n[2] Chargement du scaler...")
@@ -63,24 +55,14 @@ def test_pipeline():
     def esp32_pipeline(signals):
         """Reproduit exactement le pipeline de l'ESP32"""
         errors = []
-        for i, signal in enumerate(signals):
-            # Étape A: FFT (comme computeFFT dans l'ESP32)
+        for signal in signals:
             fft = np.fft.rfft(signal, n=SIGNAL_LENGTH)
             magnitude = np.abs(fft)[:FFT_SIZE]
             max_mag = np.max(magnitude + 1e-10)
             magnitude = magnitude / max_mag
-            
-            # Étape B: Normalisation StandardScaler (comme normalizeFeatures)
-            normalized = (magnitude - scaler.mean_) / scaler.scale_
-            
-            # Étape C: Inférence TFLite
-            input_data = normalized.astype(np.float32).reshape(1, -1)
-            interpreter.set_tensor(input_details[0]['index'], input_data)
-            interpreter.invoke()
-            output_data = interpreter.get_tensor(output_details[0]['index'])
-            
-            # Étape D: MSE (comme dans loop())
-            mse = np.mean(np.square(input_data - output_data))
+            x = (magnitude - scaler.mean_) / scaler.scale_
+            reconstructed = np_predict(x)
+            mse = np_mse(x, reconstructed)
             errors.append(mse)
         
         return np.array(errors)
