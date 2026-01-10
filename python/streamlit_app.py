@@ -3,7 +3,8 @@ import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
 
-sys.path.insert(0, os.path.dirname(__file__))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
 from config import SIGNAL_LENGTH, SAMPLE_RATE, FFT_SIZE
 from numpy_model import predict as np_predict, mse as np_mse
 
@@ -11,7 +12,7 @@ st.set_page_config(page_title="Edge PDM", page_icon="⚙️", layout="wide")
 
 @st.cache_resource
 def load_params():
-    with open("model_params.json") as f:
+    with open(os.path.join(BASE_DIR, "model_params.json")) as f:
         p = json.load(f)
     return (
         np.array(p["scaler_mean"], dtype=np.float64),
