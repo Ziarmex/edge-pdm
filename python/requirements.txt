@@ -1,10 +1,10 @@
 # Dépendances Python pour le système de maintenance prédictive
 # Installation: pip install -r requirements.txt
 
-# Deep Learning (runtime ~1MB, inference seule)
-tflite-runtime>=2.14.0
-# Deep Learning (full ~700MB, nécessaire pour entraînement)
-# tensorflow>=2.13.0
+# Deep Learning (full - nécessaire pour le déploiement Streamlit)
+tensorflow>=2.13.0
+# Alternative légère pour inference seule (~1MB, Python ≤3.11)
+# tflite-runtime>=2.14.0
 
 # Data Science
 numpy>=1.24.0
