@@ -5,8 +5,6 @@ Simule le comportement ESP32 pour vérifier que tout fonctionne.
 
 import numpy as np
 from numpy_model import predict as np_predict, mse as np_mse
-from sklearn.preprocessing import StandardScaler
-import pickle
 import json
 import sys
 import os
@@ -25,18 +23,15 @@ def test_pipeline():
     _ = np_predict(np.zeros(FFT_SIZE))
     print(f"    Modèle chargé: {FFT_SIZE} features -> autoencoder -> {FFT_SIZE} features")
 
-    # 2. Charger le scaler
-    print("\n[2] Chargement du scaler...")
-    with open("scaler.pkl", "rb") as f:
-        scaler = pickle.load(f)
-    print(f"    Scaler mean (premiers 5): {scaler.mean_[:5]}")
-    print(f"    Scaler scale (premiers 5): {scaler.scale_[:5]}")
-
-    # 3. Charger les paramètres
-    print("\n[3] Chargement des paramètres...")
-    with open("model_params.json", "r") as f:
-        params = json.load(f)
-    threshold = params["threshold"]
+    # 2. Charger les paramètres (scaler + threshold)
+    print("\n[2] Chargement des paramètres...")
+    with open("model_params.json") as f:
+        p = json.load(f)
+    scaler_mean = np.array(p["scaler_mean"])
+    scaler_scale = np.array(p["scaler_scale"])
+    threshold = p["threshold"]
+    print(f"    Scaler mean (premiers 5): {scaler_mean[:5]}")
+    print(f"    Scaler scale (premiers 5): {scaler_scale[:5]}")
     print(f"    Seuil de détection: {threshold:.6f}")
 
     # 4. Générer des signaux de test
@@ -51,14 +46,13 @@ def test_pipeline():
     print("\n[5] Test du pipeline complet (FFT → Scaler → TFLite → MSE)...")
     
     def esp32_pipeline(signals):
-        """Reproduit exactement le pipeline de l'ESP32"""
         errors = []
         for signal in signals:
             fft = np.fft.rfft(signal, n=SIGNAL_LENGTH)
             magnitude = np.abs(fft)[:FFT_SIZE]
             max_mag = np.max(magnitude + 1e-10)
             magnitude = magnitude / max_mag
-            x = (magnitude - scaler.mean_) / scaler.scale_
+            x = (magnitude - scaler_mean) / scaler_scale
             reconstructed = np_predict(x)
             mse = np_mse(x, reconstructed)
             errors.append(mse)

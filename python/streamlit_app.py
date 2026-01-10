@@ -1,4 +1,4 @@
-import sys, os, json, pickle, time
+import sys, os, json, time
 import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
@@ -10,24 +10,22 @@ from numpy_model import predict as np_predict, mse as np_mse
 st.set_page_config(page_title="Edge PDM", page_icon="⚙️", layout="wide")
 
 @st.cache_resource
-def load_scaler():
-    with open("scaler.pkl", "rb") as f:
-        return pickle.load(f)
-
-@st.cache_resource
 def load_params():
     with open("model_params.json") as f:
-        return json.load(f)
+        p = json.load(f)
+    return (
+        np.array(p["scaler_mean"], dtype=np.float64),
+        np.array(p["scaler_scale"], dtype=np.float64),
+        p["threshold"]
+    )
 
-scaler = load_scaler()
-params = load_params()
-threshold = params["threshold"]
+scaler_mean, scaler_scale, threshold = load_params()
 
 def run_pipeline(signal):
     fft = np.fft.rfft(signal, n=SIGNAL_LENGTH)
     magnitude = np.abs(fft)[:FFT_SIZE]
     magnitude = magnitude / (np.max(magnitude) + 1e-10)
-    x = (magnitude - scaler.mean_) / scaler.scale_
+    x = (magnitude - scaler_mean) / scaler_scale
     reconstructed = np_predict(x)
     mse = np_mse(x, reconstructed)
     return magnitude, mse, mse > threshold

@@ -1,24 +1,9 @@
 # Dépendances Python pour le système de maintenance prédictive
 # Installation: pip install -r requirements.txt
 
-# Deep Learning entraînement (optionnel — seulement pour retrain)
-# pip install tensorflow
-# tflite-runtime>=2.14.0 (alternative légère Python ≤3.11)
+# Pour l'entraînement uniquement (optionnel) :
+#   pip install tensorflow matplotlib scipy
 
-# Data Science
 numpy>=1.24.0
-scikit-learn>=1.3.0
-
-# Data Science
-numpy>=1.24.0
-scikit-learn>=1.3.0
-pandas>=2.0.0
-
-# Visualisation
-matplotlib>=3.7.0
-seaborn>=0.12.0
 streamlit>=1.35.0
 plotly>=5.20.0
-
-# Utilities
-scipy>=1.11.0
