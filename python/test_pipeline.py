@@ -12,10 +12,8 @@ import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from train_anomaly_model import (
-    generate_normal_signal, generate_anomaly_signal,
-    compute_fft_features, FFT_SIZE, SIGNAL_LENGTH, SAMPLE_RATE
-)
+from config import FFT_SIZE, SIGNAL_LENGTH, SAMPLE_RATE
+from signal_utils import generate_normal_signal, generate_anomaly_signal
 
 def test_pipeline():
     print("=" * 60)

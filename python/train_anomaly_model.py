@@ -10,12 +10,7 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import pickle
 
-# Configuration
-SAMPLE_RATE = 1000  # Hz
-SIGNAL_LENGTH = 128  # Nombre d'échantillons
-FFT_SIZE = 64  # Taille FFT (moitié du signal)
-N_NORMAL_SAMPLES = 1000
-N_ANOMALY_SAMPLES = 200
+from config import SAMPLE_RATE, SIGNAL_LENGTH, FFT_SIZE, N_NORMAL_SAMPLES, N_ANOMALY_SAMPLES
 
 def generate_normal_signal(n_samples):
     """Génère des signaux normaux (vibrations saines)"""

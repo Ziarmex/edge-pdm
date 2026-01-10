@@ -4,7 +4,7 @@ import streamlit as st
 import plotly.graph_objects as go
 
 sys.path.insert(0, os.path.dirname(__file__))
-from train_anomaly_model import SIGNAL_LENGTH, SAMPLE_RATE, FFT_SIZE
+from config import SIGNAL_LENGTH, SAMPLE_RATE, FFT_SIZE
 from numpy_model import predict as np_predict, mse as np_mse
 
 st.set_page_config(page_title="Edge PDM", page_icon="⚙️", layout="wide")
