@@ -4,7 +4,7 @@
 Système de détection d'anomalies en temps réel sur ESP32 utilisant TinyML. Le système analyse des signaux de vibrations via FFT et détecte les anomalies avec un autoencoder léger déployé sur microcontrôleur.
 
 <p align="center">
-  <img src="assets/esp32-photo.jpg" alt="ESP32 avec LED d'alerte" width="400"/>
+  <img src="assets/esp32-development-board.jpg" alt="ESP32 avec LED d'alerte" width="400"/>
   <br/>
   <em>ESP32 exécutant l'inférence TFLite en temps réel</em>
 </p>
