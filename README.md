@@ -3,14 +3,27 @@
 ## Description
 Système de détection d'anomalies en temps réel sur ESP32 utilisant TinyML. Le système analyse des signaux de vibrations via FFT et détecte les anomalies avec un autoencoder léger déployé sur microcontrôleur.
 
+<p align="center">
+  <img src="assets/esp32-photo.jpg" alt="ESP32 avec LED d'alerte" width="400"/>
+  <br/>
+  <em>ESP32 exécutant l'inférence TFLite en temps réel</em>
+</p>
+
+<p align="center">
+  <img src="assets/dashboard-demo.gif" alt="Dashboard Streamlit" width="700"/>
+  <br/>
+  <em>Dashboard interactif de démonstration du pipeline</em>
+</p>
+
 ### Caractéristiques principales
 - Acquisition de signaux (simulés ou ADC réel)
 - Analyse FFT en temps réel (128 échantillons)
 - Détection d'anomalies via TensorFlow Lite
-- Modèle < 100KB optimisé pour ESP32
+- Modèle < 30KB optimisé pour ESP32
 - Inférence < 100ms
 - Alertes LED en temps réel
 - 100% edge computing (pas de cloud)
+- Dashboard Streamlit interactif pour démonstration
 
 ## Architecture
 ```
@@ -55,6 +68,14 @@ edge-pdm/
 ├── python/
 │   ├── train_anomaly_model.py      # Entraînement du modèle
 │   ├── convert_model_to_header.py  # Conversion TFLite -> C header
+│   ├── streamlit_app.py            # Dashboard interactif (démo)
+│   ├── test_pipeline.py            # Tests de validation
+│   ├── anomaly_model.tflite        # Modèle entraîné
+│   ├── model_params.json           # Paramètres du modèle
+│   ├── scaler.pkl                  # Scaler Python
+│   ├── training_results.png        # Graphiques d'entraînement
+│   ├── model_data.h                # Modèle en array C (généré)
+│   ├── scaler_params.h             # Paramètres scaler en C (généré)
 │   └── requirements.txt            # Dépendances Python
 │
 ├── esp32/
@@ -62,11 +83,9 @@ edge-pdm/
 │   ├── model_data.h               # Modèle TFLite (généré)
 │   └── scaler_params.h            # Paramètres normalisation (généré)
 │
-├── data/
-│   ├── anomaly_model.tflite       # Modèle entraîné
-│   ├── model_params.json          # Paramètres du modèle
-│   ├── scaler.pkl                 # Scaler Python
-│   └── training_results.png       # Résultats d'entraînement
+├── docs/
+│   ├── design-streamlit-app.md    # Design du dashboard
+│   └── superpowers/plans/         # Plans d'implémentation
 │
 ├── README.md                      # Ce fichier
 └── INSTALLATION.md                # Guide d'installation détaillé
@@ -88,9 +107,14 @@ edge-pdm/
 ### Étape 1 : Entraînement du modèle (PC)
 ```bash
 # Installation des dépendances Python
-pip install tensorflow numpy scikit-learn matplotlib
+pip install -r requirements.txt
 # Entraînement du modèle
 python train_anomaly_model.py
+```
+
+**Pour l'entraînement uniquement**, il faut `tensorflow` au lieu de `tflite-runtime` :
+```bash
+pip install tensorflow
 ```
 
 **Sorties générées :**
@@ -103,14 +127,34 @@ python train_anomaly_model.py
 ```bash
 # Conversion du modèle en header C
 python convert_model_to_header.py
+
+# Copie des headers vers le dossier ESP32
+cp model_data.h scaler_params.h ../esp32/
 ```
 
 **Sorties générées :**
-- `model_data.h` (modèle en array C)
-- `scaler_params.h` (paramètres en C)
+- `model_data.h` (modèle en array C, ~25KB)
+- `scaler_params.h` (paramètres en C avec seuil détection)
 - `INSTALLATION.md` (instructions détaillées)
 
-### Étape 3 : Flash sur ESP32
+### Étape 3 : Dashboard interactif (Streamlit)
+Visualisez le pipeline complet sans matériel ESP32 :
+```bash
+cd python
+streamlit run streamlit_app.py
+```
+Ouvre un dashboard dark premium avec :
+- Signal time domain + FFT spectrum en temps réel
+- Détection d'anomalies avec indicateur LED
+- Contrôles interactifs (fréquences, noise, type de signal)
+- Métriques en direct : erreur de reconstruction, accuracy, seuil
+
+Déploiement sur Streamlit Cloud (gratuit) :
+1. Poussez le projet sur GitHub
+2. Allez sur https://streamlit.io/cloud
+3. Créez une app pointant vers `python/streamlit_app.py`
+
+### Étape 4 : Flash sur ESP32
 **Arduino IDE :**
 1. Installer les bibliothèques :
    - TensorFlowLite_ESP32
@@ -140,13 +184,13 @@ Inférence #20 | Error: 0.012345 | Anomalies: 2/20 | Temps: 85ms (Moy: 88.1ms)
 
 ## Tests et validation
 
-### Tests unitaires Python
-```python
-# Test de la FFT
-python -c "from train_anomaly_model import *; test_fft()"
-# Test du modèle
-python -c "from train_anomaly_model import *; test_model()"
+### Tests pipeline complet
+```bash
+cd python
+python test_pipeline.py
 ```
+Valide : génération de signal → FFT → scaler → inférence TFLite → MSE → détection.
+Testé avec 100 signaux normaux + 100 anomalies.
 
 ### Tests sur ESP32
 **1. Test FFT :**
@@ -170,8 +214,8 @@ python -c "from train_anomaly_model import *; test_model()"
 
 ### Critères de validation
 - **Temps d'inférence** : < 100ms (objectif : ~85ms)
-- **Mémoire modèle** : < 100KB (actuel : ~75KB)
-- **Accuracy** : > 80% (actuel : ~88%)
+- **Mémoire modèle** : < 100KB (actuel : ~25KB)
+- **Accuracy** : > 80% (actuel : ~95%)
 - **Stabilité** : Aucun crash sur 10 minutes
 - **Latence totale** : < 500ms (acquisition + FFT + inférence)
 
@@ -184,10 +228,10 @@ Dataset:
 - Signaux anormaux : 200 échantillons
 - Train/Test split : 80/20
 Résultats:
-- Précision détection normale : 92%
-- Détection d'anomalies : 85%
-- Accuracy totale : 88%
-- Seuil optimal : 0.05
+- Précision détection normale : 90%
+- Détection d'anomalies : 100%
+- Accuracy totale : 95%
+- Seuil optimal : 1.15
 ```
 
 ### Performances ESP32
@@ -195,8 +239,9 @@ Résultats:
 Hardware: ESP32 @ 240MHz
 Mémoire:
 - Flash utilisée : ~1.2MB (code + modèle)
-- RAM utilisée : ~80KB
+- RAM utilisée : ~55KB
 - Tensor Arena : 30KB
+- Taille du modèle : 24.9KB
 Temps:
 - Acquisition : ~128ms (128 samples @ 1kHz)
 - FFT : ~15ms
@@ -208,15 +253,16 @@ Temps:
 ## Configuration avancée
 
 ### Ajustement du seuil
+Le seuil est généré automatiquement dans `scaler_params.h` pendant l'entraînement :
 ```cpp
-// Dans scaler_params.h ou code principal
-#define ANOMALY_THRESHOLD 0.05f  // Augmenter = moins sensible
+// Dans scaler_params.h (généré)
+#define ANOMALY_THRESHOLD 1.15f  // Augmenter = moins sensible
 ```
 
 **Recommandations :**
-- Seuil bas (0.02-0.03) : Haute sensibilité, plus de fausses alarmes
-- Seuil moyen (0.05) : Équilibré (recommandé)
-- Seuil haut (0.08-0.10) : Basse sensibilité, peut manquer des anomalies
+- Seuil bas (~1.0) : Haute sensibilité, plus de fausses alarmes
+- Seuil moyen (~1.15) : Équilibré (recommandé)
+- Seuil haut (~1.3) : Basse sensibilité, peut manquer des anomalies
 
 ### Utilisation avec capteur réel
 **Exemple : ADXL345 (I2C)**
